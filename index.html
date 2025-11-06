@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Science Museum: Births & Deaths Explorer</title>
+<style>
+  body {
+    background-color: #f9f9f9;
+    font-family: "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header-bar {
+    background: #000;
+    color: #0ff;
+    padding: 12px;
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 15px;
+  }
+
+  .sidebar {
+    flex: 1;
+    min-width: 220px;
+    padding-right: 20px;
+  }
+
+  .calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 45px);
+    gap: 5px;
+    margin-top: 10px;
+  }
+
+  .day-btn {
+    background: #eee;
+    border: none;
+    font-weight: bold;
+    height: 45px;
+    width: 45px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.2s;
+  }
+
+  .day-btn:hover {
+    background: #00bcd4;
+    color: #fff;
+  }
+
+  .day-btn.today {
+    background: #ff0;
+  }
+
+  .day-btn.selected {
+    background: #f0f;
+    color: #fff;
+  }
+
+  .main {
+    flex: 2;
+    min-width: 400px;
+  }
+
+  .result-card {
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: 6px;
+    color: #fff;
+  }
+
+  .result-card.birth {
+    background: #00bcd4;
+  }
+
+  .result-card.death {
+    background: #e91e63;
+  }
+
+  .month-selector {
+    font-size: 16px;
+    padding: 4px;
+    margin-bottom: 10px;
+  }
+
+  h3 {
+    color: #222;
+  }
+
+  table {
+    width: 100%;
+    color: #fff;
+  }
+
+  td {
+    padding: 2px 4px;
+    vertical-align: top;
+  }
+
+  td:first-child {
+    font-weight: bold;
+    width: 80px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header-bar">Science Museum: Births & Deaths Explorer</div>
+
+<div class="container">
+  <div class="sidebar">
+    <label for="month">Month:</label>
+    <select id="month" class="month-selector"></select>
+    <div id="calendar" class="calendar"></div>
+  </div>
+
+  <div class="main">
+    <div id="results"></div>
+  </div>
+</div>
+
+<script>
+  let data = [];
+  let selectedMonth = new Date().getMonth() + 1;
+  let selectedDay = null;
+
+  async function loadData() {
+    const response = await fetch("data/calendar_entries.json");
+    data = await response.json();
+    populateMonthDropdown();
+    renderCalendar(selectedMonth);
+  }
+
+  function populateMonthDropdown() {
+    const monthSelect = document.getElementById("month");
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    monthSelect.innerHTML = monthNames.map((m, i) =>
+      `<option value="${i + 1}" ${i + 1 === selectedMonth ? "selected" : ""}>${m}</option>`
+    ).join("");
+    monthSelect.addEventListener("change", (e) => {
+      selectedMonth = parseInt(e.target.value);
+      selectedDay = null;
+      renderCalendar(selectedMonth);
+      document.getElementById("results").innerHTML = "";
+    });
+  }
+
+  function renderCalendar(month) {
+    const calDiv = document.getElementById("calendar");
+    calDiv.innerHTML = "";
+    const today = new Date();
+    const daysInMonth = new Date(today.getFullYear(), month, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const btn = document.createElement("button");
+      btn.textContent = day;
+      btn.classList.add("day-btn");
+      if (month === today.getMonth() + 1 && day === today.getDate()) btn.classList.add("today");
+      if (selectedDay === day) btn.classList.add("selected");
+      btn.onclick = () => {
+        selectedDay = day;
+        renderCalendar(month);
+        showEvents(month, day);
+      };
+      calDiv.appendChild(btn);
+    }
+  }
+
+  function showEvents(month, day) {
+    const filtered = data.filter(e =>
+      (e.birth_month === month && e.birth_day === day) ||
+      (e.death_month === month && e.death_day === day)
+    );
+
+    const resDiv = document.getElementById("results");
+    if (!filtered.length) {
+      resDiv.innerHTML = `<p>No entries on ${month}-${day}</p>`;
+      return;
+    }
+
+    let html = `<h3>${month}-${day} Entries (${filtered.length})</h3>`;
+    filtered.forEach(e => {
+      const type = (e.birth_month === month && e.birth_day === day) ? "BIRTH" : "DEATH";
+      const cssClass = type === "BIRTH" ? "birth" : "death";
+      html += `
+        <div class="result-card ${cssClass}">
+          <h4>${e.name || "Unknown"} [${type}]</h4>
+          <div class="result-meta">Source: ${e.source || "SMG"}</div>
+          <table>
+            <tr><td>RowIndex</td><td>${e.RowIndex ?? ""}</td></tr>
+            <tr><td>Birth</td><td>${e.birth ?? ""}</td></tr>
+            <tr><td>Death</td><td>${e.death ?? ""}</td></tr>
+            <tr><td>Gender</td><td>${e.gender ?? ""}</td></tr>
+            <tr><td>Occupation</td><td>${e.occupation ?? ""}</td></tr>
+          </table>
+        </div>`;
+    });
+    resDiv.innerHTML = html;
+  }
+
+  loadData();
+</script>
+</body>
+</html>
