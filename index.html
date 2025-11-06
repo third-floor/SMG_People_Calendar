@@ -105,7 +105,12 @@
 
   td:first-child {
     font-weight: bold;
-    width: 80px;
+    width: 90px;
+  }
+
+  a.uid-link {
+    color: #fff;
+    text-decoration: underline;
   }
 </style>
 </head>
@@ -188,12 +193,15 @@
     filtered.forEach(e => {
       const type = (e.birth_month === month && e.birth_day === day) ? "BIRTH" : "DEATH";
       const cssClass = type === "BIRTH" ? "birth" : "death";
+      const uidUrl = e.uid ? `https://collection.sciencemuseumgroup.org.uk/people/${e.uid}` : null;
+
       html += `
         <div class="result-card ${cssClass}">
           <h4>${e.name || "Unknown"} [${type}]</h4>
           <div class="result-meta">Source: ${e.source || "SMG"}</div>
           <table>
             <tr><td>RowIndex</td><td>${e.RowIndex ?? ""}</td></tr>
+            <tr><td>UID</td><td>${uidUrl ? `<a class="uid-link" href="${uidUrl}" target="_blank">${e.uid}</a>` : ""}</td></tr>
             <tr><td>Birth</td><td>${e.birth ?? ""}</td></tr>
             <tr><td>Death</td><td>${e.death ?? ""}</td></tr>
             <tr><td>Gender</td><td>${e.gender ?? ""}</td></tr>
